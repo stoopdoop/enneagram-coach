@@ -616,7 +616,7 @@ async function generateResponse(userMessage) {
         // Show typing indicator
         const loadingMessage = addMessage('Claude is thinking...', 'ai');
         
-        const response = await fetch('http://localhost:3001/api/claude', {
+        const response = await fetch('/api/claude', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
