@@ -1,7 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
-const path = require('path');  // ← MOVE THIS HERE
+const path = require('path');
+const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
@@ -10,9 +11,21 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
+// Debug - log what files are in the directory
+console.log('Current directory:', __dirname);
+console.log('Files in directory:', fs.readdirSync(__dirname));
+
 // Add this route to serve your HTML file
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'enneagram-coach.html'));
+    const filePath = path.join(__dirname, 'enneagram-coach.html');
+    console.log('Trying to serve:', filePath);
+    console.log('File exists:', fs.existsSync(filePath));
+    
+    if (fs.existsSync(filePath)) {
+        res.sendFile(filePath);
+    } else {
+        res.status(404).send('File not found: enneagram-coach.html');
+    }
 });
 
 app.post('/api/claude', async (req, res) => {
@@ -62,6 +75,6 @@ Respond as their personal Enneagram coach with specific insights for Type ${user
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Server running at http://localhost:${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
     console.log('Open your browser to http://localhost:3001/enneagram-coach.html');
 });
