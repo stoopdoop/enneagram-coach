@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Enneagram Coach</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .question {
+            margin-bottom: 25px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+            background: #f8f9ff;
+            border-radius: 8px;
+        }
+        .question h3 {
+            margin-top: 0;
+            color: #4a5568;
+        }
+        .options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+        .option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            padding: 15px;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+            flex: 1;
+        }
+        .option:hover {
+            background-color: #e2e8f0;
+        }
+        .option input[type="radio"] {
+            margin-bottom: 5px;
+            transform: scale(1.2);
+            pointer-events: none;
+        }
+        .option label {
+            font-size: 12px;
+            text-align: center;
+            cursor: pointer;
+            pointer-events: none;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background-color: #e2e8f0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .results {
+            display: none;
+            text-align: center;
+        }
+        .type-result {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        .chat-container {
+            margin-top: 30px;
+            border: 2px solid #667eea;
+            border-radius: 15px;
+            padding: 20px;
+            background: #f8f9ff;
+        }
+        .chat-messages {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .user-message {
+            background: #667eea;
+            color: white;
+            margin-left: 20%;
+        }
+        .ai-message {
+            background: #e2e8f0;
+            color: #333;
+            margin-right: 20%;
+        }
+        .chat-input {
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .hidden {
+            display: none;
+        }
+        .type-option {
+            background: #f8f9ff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .type-option:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .type-option strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        .type-option p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center; color: #4a5568;">🌟 AI Enneagram Coach</h1>
+        
+        <div id="startPage">
+            <div style="text-align: center; margin: 40px 0;">
+                <h2>Welcome to Your Personal Enneagram Coach</h2>
+                <p style="font-size: 18px; margin: 30px 0; color: #4a5568;">Choose how you'd like to begin your journey:</p>
+                
+                <div style="display: flex; gap: 30px; justify-content: center; flex-wrap: wrap; margin: 40px 0;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 15px; max-width: 300px; cursor: pointer; transition: transform 0.3s;" onclick="startAssessment()">
+                        <h3 style="margin-top: 0;">📝 Take the Assessment</h3>
+                        <p>Discover your Enneagram type with our comprehensive 108-question assessment</p>
+                        <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 8px; margin-top: 15px;">
+                            <strong>Perfect if you're new to Enneagram or want to confirm your type</strong>
+                        </div>
+                    </div>
+                    
+                    <div style="background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); color: white; padding: 30px; border-radius: 15px; max-width: 300px; cursor: pointer; transition: transform 0.3s;" onclick="showTypeSelector()">
+                        <h3 style="margin-top: 0;">💬 I Know My Type</h3>
+                        <p>Skip to coaching if you already know your Enneagram type</p>
+                        <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 8px; margin-top: 15px;">
+                            <strong>Jump straight to personalized coaching and insights</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="typeSelector" class="hidden">
+            <h2>Select Your Enneagram Type</h2>
+            <p>Choose your type to start chatting with your personalized AI coach:</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin: 30px 0;">
+                <div class="type-option" onclick="selectType(1)">
+                    <strong>Type 1 - The Perfectionist</strong>
+                    <p>Principled, purposeful, self-controlled, and perfectionistic</p>
+                </div>
+                <div class="type-option" onclick="selectType(2)">
+                    <strong>Type 2 - The Helper</strong>
+                    <p>Caring, interpersonal, demonstrative, generous, and people-pleasing</p>
+                </div>
+                <div class="type-option" onclick="selectType(3)">
+                    <strong>Type 3 - The Achiever</strong>
+                    <p>Self-assured, attractive, charming, ambitious, competent, and energetic</p>
+                </div>
+                <div class="type-option" onclick="selectType(4)">
+                    <strong>Type 4 - The Individualist</strong>
+                    <p>Self-aware, sensitive, reserved, emotionally honest, creative, and personal</p>
+                </div>
+                <div class="type-option" onclick="selectType(5)">
+                    <strong>Type 5 - The Investigator</strong>
+                    <p>Intense, cerebral, perceptive, innovative, secretive, and isolated</p>
+                </div>
+                <div class="type-option" onclick="selectType(6)">
+                    <strong>Type 6 - The Loyalist</strong>
+                    <p>Reliable, hard-working, responsible, anxious, and suspicious</p>
+                </div>
+                <div class="type-option" onclick="selectType(7)">
+                    <strong>Type 7 - The Enthusiast</strong>
+                    <p>Busy, fun-loving, spontaneous, versatile, distractible, and scattered</p>
+                </div>
+                <div class="type-option" onclick="selectType(8)">
+                    <strong>Type 8 - The Challenger</strong>
+                    <p>Self-confident, strong, assertive, protective, resourceful, straight-talking, and decisive</p>
+                </div>
+                <div class="type-option" onclick="selectType(9)">
+                    <strong>Type 9 - The Peacemaker</strong>
+                    <p>Accepting, trusting, stable, creative, optimistic, and supportive</p>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn" onclick="backToStart()" style="background: #6c757d;">← Back to Start</button>
+            </div>
+        </div>
+        
+        <div id="assessment" class="hidden">
+            <h2>Discover Your Enneagram Type</h2>
+            <p>Answer these questions honestly based on how you generally think, feel, and behave. There are no right or wrong answers.</p>
+            
+            <div class="progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div id="progressText">Question 1 of 108</div>
+            
+            <div id="questionContainer"></div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" id="nextBtn" onclick="nextQuestion()">Next Question</button>
+                <button class="btn hidden" id="resultsBtn" onclick="showResults()">Get My Results</button>
+                <button class="btn" onclick="backToStart()" style="background: #6c757d; margin-left: 10px;">← Back to Start</button>
+            </div>
+        </div>
+
+        <div id="results" class="results">
+            <div class="type-result">
+                <h2>Your Enneagram Type: <span id="resultType"></span></h2>
+                <h3 id="resultTitle"></h3>
+                <p id="resultDescription"></p>
+            </div>
+            
+            <div class="chat-container">
+                <h3>💬 Chat with Your AI Enneagram Coach</h3>
+                <p><strong>Disclaimer:</strong> This AI coach provides educational insights about Enneagram types and personal development. It is not a substitute for professional counseling, therapy, or medical advice. For clinical mental health support, please consult a licensed professional.</p>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message ai-message">
+                        Hello! I'm your AI Enneagram Coach. I'm here to help you understand your type and explore personal growth opportunities. What would you like to know about your Enneagram results?
+                    </div>
+                </div>
+                
+                <div class="chat-input">
+                    <input type="text" id="userInput" placeholder="Ask me about your Enneagram type..." onkeypress="handleKeyPress(event)">
+                    <button class="btn" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            // Type 1 Questions
+            "I have a strong inner critic that points out what's wrong or could be improved.",
+            "I often feel frustrated when things are not done correctly or efficiently.",
+            "I believe there's a right way and wrong way to do most things.",
+            "I tend to be organized and like to plan ahead.",
+            "I often notice errors and mistakes that others miss.",
+            "I feel responsible for improving situations and fixing problems.",
+            "I can be quite critical of myself and others.",
+            "I have high standards and expect excellence.",
+            "I often feel angry about injustice or incompetence.",
+            "I prefer structure and clear guidelines.",
+            "I believe hard work and discipline lead to success.",
+            "I often postpone fun until important work is completed.",
+            
+            // Type 2 Questions
+            "I often put others' needs before my own.",
+            "I have a strong desire to be helpful and needed.",
+            "I'm very sensitive to others' emotions and moods.",
+            "I often know what others need before they ask.",
+            "I sometimes feel unappreciated despite my efforts to help.",
+            "I find it difficult to ask for help when I need it.",
+            "I often give advice even when not asked.",
+            "I feel good about myself when I'm helping others.",
+            "I sometimes feel resentful when my help isn't acknowledged.",
+            "I have trouble saying no to requests for help.",
+            "I often focus on relationships and connections.",
+            "I sometimes neglect my own needs while caring for others.",
+            
+            // Type 3 Questions
+            "I'm very goal-oriented and focused on achieving success.",
+            "I often adapt my image to fit what others expect or admire.",
+            "I'm competitive and like to win or be the best.",
+            "I measure my worth by my accomplishments.",
+            "I'm usually very busy and have many projects going.",
+            "I often focus on efficiency and getting results.",
+            "I sometimes cut corners to achieve my goals faster.",
+            "I'm good at promoting myself and my achievements.",
+            "I often compare myself to others' success.",
+            "I can become impatient with inefficiency or slowness.",
+            "I like to be recognized for my achievements.",
+            "I sometimes struggle to slow down and relax.",
+            
+            // Type 4 Questions
+            "I often feel different from other people.",
+            "I have intense emotions and deep feelings.",
+            "I'm drawn to what's missing or unavailable.",
+            "I often feel misunderstood by others.",
+            "I have a rich inner life and vivid imagination.",
+            "I'm attracted to beauty, art, and aesthetic experiences.",
+            "I sometimes feel envious of what others have.",
+            "I often focus on what's lacking in my life.",
+            "I can be quite moody and emotionally reactive.",
+            "I value authenticity and being true to myself.",
+            "I often feel nostalgic or melancholic.",
+            "I sometimes feel like an outsider looking in.",
+            
+            // Type 5 Questions
+            "I need plenty of alone time to recharge and think.",
+            "I prefer to observe before participating.",
+            "I often feel drained by too much social interaction.",
+            "I like to understand how things work.",
+            "I tend to be private and keep my thoughts to myself.",
+            "I often feel overwhelmed by others' emotional demands.",
+            "I prefer to be self-reliant and independent.",
+            "I often withdraw when feeling pressured or invaded.",
+            "I like to have expertise and knowledge in my areas of interest.",
+            "I sometimes feel like I don't have enough energy for everything.",
+            "I prefer written communication over verbal sometimes.",
+            "I often need time to process before responding.",
+            
+            // Type 6 Questions
+            "I often think about potential problems and worst-case scenarios.",
+            "I value loyalty and commitment in relationships.",
+            "I sometimes doubt my own judgment and seek reassurance.",
+            "I often look to authorities or experts for guidance.",
+            "I can be quite anxious and worry about the future.",
+            "I'm good at spotting potential risks or dangers.",
+            "I sometimes question people's motives and intentions.",
+            "I feel more secure when I have backup plans.",
+            "I often seek safety and security in my decisions.",
+            "I can be both trusting and suspicious of others.",
+            "I sometimes have trouble making decisions.",
+            "I often feel responsible for others' safety and well-being.",
+            
+            // Type 7 Questions
+            "I like to keep my options open and avoid commitment.",
+            "I often have many ideas and projects going at once.",
+            "I prefer to focus on positive possibilities rather than problems.",
+            "I get bored easily and like variety and stimulation.",
+            "I often plan fun activities and future adventures.",
+            "I tend to be optimistic and enthusiastic.",
+            "I sometimes avoid dealing with negative emotions.",
+            "I like to try new experiences and explore different options.",
+            "I often reframe negative situations in a positive light.",
+            "I can become restless when stuck in routine.",
+            "I often entertain others with stories and humor.",
+            "I sometimes have trouble finishing what I start.",
+            
+            // Type 8 Questions
+            "I'm not afraid to confront others when necessary.",
+            "I often take charge in group situations.",
+            "I have strong opinions and am not easily swayed.",
+            "I protect and stand up for underdogs or those I care about.",
+            "I prefer direct, honest communication even if it's uncomfortable.",
+            "I often challenge authority when I disagree.",
+            "I have a lot of energy and intensity.",
+            "I sometimes come across as intimidating without meaning to.",
+            "I believe in justice and fairness.",
+            "I often act quickly and decisively.",
+            "I sometimes have trouble showing vulnerability.",
+            "I prefer to be in control of my environment and circumstances.",
+            
+            // Type 9 Questions
+            "I often go along with others to avoid conflict.",
+            "I can see multiple perspectives in most situations.",
+            "I sometimes have trouble making decisions or setting priorities.",
+            "I prefer harmony and peace in my relationships.",
+            "I often procrastinate on important tasks.",
+            "I sometimes lose track of my own wants and needs.",
+            "I'm a good mediator and can help others resolve conflicts.",
+            "I sometimes feel overlooked or forgotten.",
+            "I often merge with others' agendas instead of pursuing my own.",
+            "I can be quite stubborn when pushed too hard.",
+            "I prefer routine and familiar environments.",
+            "I sometimes have trouble getting motivated or energized."
+        ];
+
+        let currentQuestion = 0;
+        let answers = new Array(108).fill(0);
+        let userType = null;
+
+        function startAssessment() {
+            document.getElementById('startPage').classList.add('hidden');
+            document.getElementById('assessment').classList.remove('hidden');
+            loadQuestion();
+        }
+
+        function showTypeSelector() {
+            document.getElementById('startPage').classList.add('hidden');
+            document.getElementById('typeSelector').classList.remove('hidden');
+        }
+
+        function selectType(typeNumber) {
+            userType = typeNumber;
+            showChatInterface();
+        }
+
+        function backToStart() {
+            // Hide all sections
+            document.getElementById('assessment').classList.add('hidden');
+            document.getElementById('typeSelector').classList.add('hidden');
+            document.getElementById('results').style.display = 'none';
+            
+            // Show start page
+            document.getElementById('startPage').classList.remove('hidden');
+            
+            // Reset assessment if needed
+            currentQuestion = 0;
+            answers = new Array(108).fill(0);
+            userType = null;
+        }
+
+        function showChatInterface() {
+            const typeInfo = {
+                1: {
+                    title: "The Perfectionist",
+                    description: "You are principled, purposeful, self-controlled, and perfectionistic. You strive to be good and right, and to improve everything around you. You are well-organized, orderly, and fastidious, trying to maintain high standards, but can slip into being critical and perfectionistic."
+                },
+                2: {
+                    title: "The Helper",
+                    description: "You are caring, interpersonal, demonstrative, generous, and people-pleasing. You are empathetic, sincere, and warm-hearted. You are friendly, generous, and self-sacrificing, but can also be sentimental, flattering, and people-pleasing."
+                },
+                3: {
+                    title: "The Achiever",
+                    description: "You are self-assured, attractive, charming, ambitious, competent, and energetic. You are adaptable, excelling, driven, and image-conscious. You can also be competitive, workaholic, and overly concerned with your image and what others think of you."
+                },
+                4: {
+                    title: "The Individualist",
+                    description: "You are self-aware, sensitive, and reserved. You are emotionally honest, creative, and personal, but can also be moody and self-conscious. You may feel vulnerable and defective, but are also inspired and highly creative."
+                },
+                5: {
+                    title: "The Investigator",
+                    description: "You are intense, cerebral, perceptive, innovative, secretive, and isolated. You are able to concentrate and focus on developing complex ideas and skills. Independent and inventive, you can become preoccupated with your thoughts and imaginary constructs."
+                },
+                6: {
+                    title: "The Loyalist",
+                    description: "You are reliable, hard-working, responsible, anxious, and suspicious. You are committed, security-oriented, engaging, responsible, and anxious. You can be excellent troubleshooters and are loyal and faithful, but can also become defensive and evasive."
+                },
+                7: {
+                    title: "The Enthusiast",
+                    description: "You are busy, fun-loving, spontaneous, versatile, distractible, and scattered. You are extroverted, optimistic, versatile, and spontaneous. You are playful, high-spirited, and practical, but can become overextended, scattered, and undisciplined."
+                },
+                8: {
+                    title: "The Challenger",
+                    description: "You are self-confident, strong, assertive, protective, resourceful, straight-talking, and decisive. You can take charge and make things happen. You can be heroic and inspiring, but can also be combative and intimidating."
+                },
+                9: {
+                    title: "The Peacemaker",
+                    description: "You are accepting, trusting, stable, creative, optimistic, and supportive. You are usually grounded, supportive, and often creative, but can be too willing to go along with others to keep the peace. You desire harmony and can be complacent and minimize problems."
+                }
+            };
+            
+            // Hide other sections
+            document.getElementById('startPage').classList.add('hidden');
+            document.getElementById('typeSelector').classList.add('hidden');
+            document.getElementById('assessment').classList.add('hidden');
+            
+            // Update results section with selected type
+            document.getElementById('resultType').textContent = `Type ${userType}`;
+            document.getElementById('resultTitle').textContent = typeInfo[userType].title;
+            document.getElementById('resultDescription').textContent = typeInfo[userType].description;
+            
+            // Show results/chat section
+            document.getElementById('results').style.display = 'block';
+            
+            // Clear any existing chat messages except the initial one
+            const chatContainer = document.getElementById('chatMessages');
+            chatContainer.innerHTML = `
+                <div class="message ai-message">
+                    Hello! I'm your AI Enneagram Coach. I can see you're a Type ${userType} - ${typeInfo[userType].title}. I'm here to help you understand your type and explore personal growth opportunities. What would you like to know about your Enneagram type?
+                </div>
+            `;
+        }
+
+        function selectAnswer(value) {
+            document.getElementById(`q${currentQuestion}_${value}`).checked = true;
+        }
+
+        function loadQuestion() {
+            const container = document.getElementById('questionContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
+            container.innerHTML = `
+                <div class="question">
+                    <h3>Question ${currentQuestion + 1}</h3>
+                    <p>${questions[currentQuestion]}</p>
+                    <div class="options">
+                        <div class="option" onclick="selectAnswer(1)">
+                            <input type="radio" name="q${currentQuestion}" value="1" id="q${currentQuestion}_1">
+                            <label for="q${currentQuestion}_1">Strongly<br>Disagree</label>
+                        </div>
+                        <div class="option" onclick="selectAnswer(2)">
+                            <input type="radio" name="q${currentQuestion}" value="2" id="q${currentQuestion}_2">
+                            <label for="q${currentQuestion}_2">Disagree</label>
+                        </div>
+                        <div class="option" onclick="selectAnswer(3)">
+                            <input type="radio" name="q${currentQuestion}" value="3" id="q${currentQuestion}_3">
+                            <label for="q${currentQuestion}_3">Neutral</label>
+                        </div>
+                        <div class="option" onclick="selectAnswer(4)">
+                            <input type="radio" name="q${currentQuestion}" value="4" id="q${currentQuestion}_4">
+                            <label for="q${currentQuestion}_4">Agree</label>
+                        </div>
+                        <div class="option" onclick="selectAnswer(5)">
+                            <input type="radio" name="q${currentQuestion}" value="5" id="q${currentQuestion}_5">
+                            <label for="q${currentQuestion}_5">Strongly<br>Agree</label>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            progressBar.style.width = ((currentQuestion + 1) / 108) * 100 + '%';
+            progressText.textContent = `Question ${currentQuestion + 1} of 108`;
+            
+            // Restore previous answer if exists
+            if (answers[currentQuestion] > 0) {
+                document.getElementById(`q${currentQuestion}_${answers[currentQuestion]}`).checked = true;
+            }
+        }
+
+        function nextQuestion() {
+            const selected = document.querySelector(`input[name="q${currentQuestion}"]:checked`);
+            if (!selected) {
+                alert('Please select an answer before continuing.');
+                return;
+            }
+            
+            answers[currentQuestion] = parseInt(selected.value);
+            
+            if (currentQuestion < 107) {
+                currentQuestion++;
+                loadQuestion();
+            } else {
+                document.getElementById('nextBtn').classList.add('hidden');
+                document.getElementById('resultsBtn').classList.remove('hidden');
+            }
+        }
+
+        function calculateType() {
+            const typeScores = new Array(9).fill(0);
+            
+            // Calculate scores for each type (12 questions each)
+            for (let type = 0; type < 9; type++) {
+                for (let q = 0; q < 12; q++) {
+                    const questionIndex = type * 12 + q;
+                    typeScores[type] += answers[questionIndex];
+                }
+            }
+            
+            // Find the type with highest score
+            let maxScore = 0;
+            let resultType = 1;
+            for (let i = 0; i < 9; i++) {
+                if (typeScores[i] > maxScore) {
+                    maxScore = typeScores[i];
+                    resultType = i + 1;
+                }
+            }
+            
+            return resultType;
+        }
+
+        function showResults() {
+            userType = calculateType();
+            showChatInterface();
+        }
+
+        // CLAUDE API INTEGRATION
+        // Replace the ENTIRE generateResponse function with this:
+async function generateResponse(userMessage) {
+    try {
+        // Show typing indicator
+        const loadingMessage = addMessage('Claude is thinking...', 'ai');
+        
+        const response = await fetch('http://localhost:3001/api/claude', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: userMessage,
+                userType: userType
+            })
+        });
+
+        // Remove typing indicator
+        loadingMessage.remove();
+
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.response;
+        
+    } catch (error) {
+        console.error('Error calling backend:', error);
+        return "I'm having trouble connecting to Claude right now. Please make sure the backend server is running. As a Type " + userType + ", what specific situation would you like help navigating?";
+    }
+}
+
+                
+        // Updated sendMessage function to work with async Claude API
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            // Add user message
+            addMessage(message, 'user');
+            input.value = '';
+            
+            try {
+                // Get Claude's response
+                const response = await generateResponse(message);
+                addMessage(response, 'ai');
+            } catch (error) {
+                console.error('Error in sendMessage:', error);
+                addMessage("Sorry, I'm having trouble right now. Please try again!", 'ai');
+            }
+        }
+
+        function addMessage(message, sender) {
+            const container = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'ai-message');
+            messageDiv.textContent = message;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+            return messageDiv; // Return the element so we can remove loading messages
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Remove old helper functions - Claude API handles everything now
+
+        // System starts on the start page - no initialization needed
+    </script>
+</body>
+</html>
