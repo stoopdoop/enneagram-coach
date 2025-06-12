@@ -3,7 +3,7 @@ const cors = require('cors');
 const fetch = require('node-fetch');
 const path = require('path');  // ← MOVE THIS HERE
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
 
 app.use(cors());
