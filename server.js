@@ -17,6 +17,11 @@ app.get('/test', (req, res) => {
     res.send('Server is working! Files should be at root.');
 });
 
+// Redirect root to the HTML file
+app.get('/', (req, res) => {
+    res.redirect('/enneagram-coach.html');
+});
+
 app.post('/api/claude', async (req, res) => {
     try {
         const { message, userType } = req.body;
