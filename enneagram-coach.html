@@ -678,16 +678,19 @@ async function generateResponse(userMessage) {
             try {
                 // Get Claude's response
                 const response = await generateResponse(message);
-                addMessage(response, 'ai');
+               if (response) {
+    addMessage(response, 'ai');
+}
             } catch (error) {
                 console.error('Error in sendMessage:', error);
                 addMessage("Sorry, I'm having trouble right now. Please try again!", 'ai');
             }
         }
 
-       function addMessage(text, sender) {
+      function addMessage(text, sender) {
+    const chatMessages = document.getElementById('chatMessages');
     const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}`;
+    messageDiv.className = `message ${sender}-message`;
     
     // Convert markdown-style formatting to HTML
     let formattedText = text
@@ -696,9 +699,10 @@ async function generateResponse(userMessage) {
         .replace(/\n/g, '<br>') // Line breaks
         .replace(/• /g, '<br>• '); // Bullet points with line breaks
     
-    messageDiv.innerHTML = '<p>' + formattedText + '</p>';
+   messageDiv.innerHTML = '<p>' + formattedText + '</p>';
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    return messageDiv;
 }
 
         function handleKeyPress(event) {
