@@ -1,15 +1,15 @@
 {
   "name": "enneagram-coach-backend",
   "version": "1.0.0",
-  "description": "Simple backend for Claude-powered Enneagram coach",
+  "description": "",
   "main": "server.js",
   "scripts": {
-  "start": "node server.js"
-}
+    "start": "node server.js"
+  },
   "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
     "express": "^4.18.2",
-    "node-fetch": "^2.6.7"
+    "cors": "^2.8.5",
+    "node-fetch": "^2.6.7",
+    "dotenv": "^16.3.1"
   }
 }
