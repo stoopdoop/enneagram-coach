@@ -75,6 +75,6 @@ Respond as their personal Enneagram coach with specific insights for Type ${user
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(` Server running on port ${PORT}`);
     console.log('Open your browser to http://localhost:3001/enneagram-coach.html');
 });
