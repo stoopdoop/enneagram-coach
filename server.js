@@ -1,15 +1,19 @@
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
-
+const path = require('path');  // ← MOVE THIS HERE
 const app = express();
 const PORT = 3001;
-
 const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.'));
+app.use(express.static(path.join(__dirname)));
+
+// Add this route to serve your HTML file
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'enneagram-coach.html'));
+});
 
 app.post('/api/claude', async (req, res) => {
     try {
@@ -28,7 +32,6 @@ app.post('/api/claude', async (req, res) => {
                 messages: [{
                     role: 'user',
                     content: `You are an expert Enneagram coach specifically helping a Type ${userType} person. 
-
 IMPORTANT CONTEXT:
 - The user is Type ${userType} 
 - Keep responses conversational, helpful, and under 250 words
@@ -38,18 +41,14 @@ IMPORTANT CONTEXT:
 - If they mention work situations, give type-specific workplace guidance
 - Stay within Enneagram coaching scope (not therapy)
 - Be warm, encouraging, and insightful
-
 USER'S MESSAGE: "${message}"
-
 Respond as their personal Enneagram coach with specific insights for Type ${userType}:`
                 }]
             })
         });
-
         if (!response.ok) {
             throw new Error(`Claude API error: ${response.status}`);
         }
-
         const data = await response.json();
         res.json({ response: data.content[0].text });
         
