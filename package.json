@@ -4,9 +4,11 @@
   "description": "Simple backend for Claude-powered Enneagram coach",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-"railway-build": "npm ci --omit=dev && npm run build"
-  },
+  "start": "node server.js",
+  "build": "react-scripts build",
+  "test": "react-scripts test",
+  "eject": "react-scripts eject"
+},
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
