@@ -42,10 +42,9 @@
             flex-direction: column;
             align-items: center;
             cursor: pointer;
-            padding: 15px;
+            padding: 10px;
             border-radius: 8px;
             transition: background-color 0.3s;
-            flex: 1;
         }
         .option:hover {
             background-color: #e2e8f0;
@@ -53,13 +52,11 @@
         .option input[type="radio"] {
             margin-bottom: 5px;
             transform: scale(1.2);
-            pointer-events: none;
         }
         .option label {
             font-size: 12px;
             text-align: center;
             cursor: pointer;
-            pointer-events: none;
         }
         .progress {
             width: 100%;
@@ -114,31 +111,10 @@
             border-radius: 8px;
         }
         .message {
-    margin: 10px 0;
-    padding: 12px 16px;
-    border-radius: 18px;
-    max-width: 80%;
-    word-wrap: break-word;
-}
-        .message p {
-    margin: 0 0 10px 0;
-    line-height: 1.6;
-}
-
-.message p:last-child {
-    margin-bottom: 0;
-}
-
-.message strong {
-    font-weight: 600;
-    color: inherit;
-}
-
-.message br {
-    display: block;
-    margin: 5px 0;
-    content: "";
-}
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
         .user-message {
             background: #667eea;
             color: white;
@@ -187,6 +163,80 @@
             margin: 0;
             font-size: 14px;
             opacity: 0.8;
+        }
+        .support-notice {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+        }
+        .support-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .support-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+        .support-text {
+            flex: 1;
+        }
+        .support-text strong {
+            color: #4a5568;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .support-text p {
+            margin: 0;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .support-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .support-btn, .support-btn-custom {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .support-btn:hover, .support-btn-custom:hover {
+            background: #5a67d8;
+        }
+        .support-btn-custom {
+            background: #764ba2;
+        }
+        .close-support {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #9ca3af;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .close-support:hover {
+            color: #6b7280;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
@@ -305,6 +355,23 @@
                 <div class="chat-input">
                     <input type="text" id="userInput" placeholder="Ask me about your Enneagram type..." onkeypress="handleKeyPress(event)">
                     <button class="btn" onclick="sendMessage()">Send</button>
+                </div>
+                
+                <div id="supportNotice" class="support-notice hidden">
+                    <div class="support-content">
+                        <span class="support-icon">☕</span>
+                        <div class="support-text">
+                            <strong>Enjoying your AI coaching session?</strong>
+                            <p>Each response costs me to generate. If this is helpful, a small contribution keeps the service running!</p>
+                        </div>
+                        <div class="support-buttons">
+                            <button class="support-btn" onclick="openDonation(1)">$1</button>
+                            <button class="support-btn" onclick="openDonation(5)">$5</button>
+                            <button class="support-btn" onclick="openDonation(10)">$10</button>
+                            <button class="support-btn-custom" onclick="openCustomDonation()">Other</button>
+                        </div>
+                        <button class="close-support" onclick="closeSupportNotice()">×</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -442,6 +509,8 @@
         let currentQuestion = 0;
         let answers = new Array(108).fill(0);
         let userType = null;
+        let messageCount = 0;
+        let supportNoticeShown = false;
 
         function startAssessment() {
             document.getElementById('startPage').classList.add('hidden');
@@ -494,7 +563,7 @@
                 },
                 5: {
                     title: "The Investigator",
-                    description: "You are intense, cerebral, perceptive, innovative, secretive, and isolated. You are able to concentrate and focus on developing complex ideas and skills. Independent and inventive, you can become preoccupated with your thoughts and imaginary constructs."
+                    description: "You are intense, cerebral, perceptive, innovative, secretive, and isolated. You are able to concentrate and focus on developing complex ideas and skills. Independent and inventive, you can become preoccupied with your thoughts and imaginary constructs."
                 },
                 6: {
                     title: "The Loyalist",
@@ -536,10 +605,6 @@
             `;
         }
 
-        function selectAnswer(value) {
-            document.getElementById(`q${currentQuestion}_${value}`).checked = true;
-        }
-
         function loadQuestion() {
             const container = document.getElementById('questionContainer');
             const progressBar = document.getElementById('progressBar');
@@ -550,23 +615,23 @@
                     <h3>Question ${currentQuestion + 1}</h3>
                     <p>${questions[currentQuestion]}</p>
                     <div class="options">
-                        <div class="option" onclick="selectAnswer(1)">
+                        <div class="option">
                             <input type="radio" name="q${currentQuestion}" value="1" id="q${currentQuestion}_1">
                             <label for="q${currentQuestion}_1">Strongly<br>Disagree</label>
                         </div>
-                        <div class="option" onclick="selectAnswer(2)">
+                        <div class="option">
                             <input type="radio" name="q${currentQuestion}" value="2" id="q${currentQuestion}_2">
                             <label for="q${currentQuestion}_2">Disagree</label>
                         </div>
-                        <div class="option" onclick="selectAnswer(3)">
+                        <div class="option">
                             <input type="radio" name="q${currentQuestion}" value="3" id="q${currentQuestion}_3">
                             <label for="q${currentQuestion}_3">Neutral</label>
                         </div>
-                        <div class="option" onclick="selectAnswer(4)">
+                        <div class="option">
                             <input type="radio" name="q${currentQuestion}" value="4" id="q${currentQuestion}_4">
                             <label for="q${currentQuestion}_4">Agree</label>
                         </div>
-                        <div class="option" onclick="selectAnswer(5)">
+                        <div class="option">
                             <input type="radio" name="q${currentQuestion}" value="5" id="q${currentQuestion}_5">
                             <label for="q${currentQuestion}_5">Strongly<br>Agree</label>
                         </div>
@@ -630,43 +695,7 @@
             showChatInterface();
         }
 
-        // CLAUDE API INTEGRATION
-        // Replace the ENTIRE generateResponse function with this:
-async function generateResponse(userMessage) {
-    try {
-        // Show typing indicator
-        const loadingMessage = addMessage('Claude is thinking...', 'ai');
-        
-        const response = await fetch('/api/claude', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                message: userMessage,
-                userType: userType
-            })
-        });
-
-        // Remove typing indicator
-        loadingMessage.remove();
-
-        if (!response.ok) {
-            throw new Error(`Server error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data.response;
-        
-    } catch (error) {
-        console.error('Error calling backend:', error);
-        return "I'm having trouble connecting to Claude right now. Please make sure the backend server is running. As a Type " + userType + ", what specific situation would you like help navigating?";
-    }
-}
-
-                
-        // Updated sendMessage function to work with async Claude API
-        async function sendMessage() {
+        function sendMessage() {
             const input = document.getElementById('userInput');
             const message = input.value.trim();
             if (!message) return;
@@ -674,36 +703,84 @@ async function generateResponse(userMessage) {
             // Add user message
             addMessage(message, 'user');
             input.value = '';
+            messageCount++;
             
-            try {
-                // Get Claude's response
-                const response = await generateResponse(message);
-               if (response) {
-    addMessage(response, 'ai');
-}
-            } catch (error) {
-                console.error('Error in sendMessage:', error);
-                addMessage("Sorry, I'm having trouble right now. Please try again!", 'ai');
+            // Generate AI response
+            setTimeout(() => {
+                const response = generateResponse(message);
+                addMessage(response, 'ai');
+                
+                // Show support notice after 3rd message or after assessment completion
+                if ((messageCount >= 3 || userType) && !supportNoticeShown) {
+                    setTimeout(() => showSupportNotice(), 2000);
+                }
+            }, 1000);
+        }
+
+        function showSupportNotice() {
+            if (!supportNoticeShown) {
+                document.getElementById('supportNotice').classList.remove('hidden');
+                supportNoticeShown = true;
             }
         }
 
-      function addMessage(text, sender) {
-    const chatMessages = document.getElementById('chatMessages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}-message`;
+        function closeSupportNotice() {
+            document.getElementById('supportNotice').classList.add('hidden');
+        }
+
+        function openDonation(amount) {
+    const buyMeCoffeeLink = `https://www.buymeacoffee.com/enneagramaicoach`;
+    const paypalLink = `https://www.paypal.com/donate/?business=YEPMU72J6H84Q&no_recurring=0&item_name=Enneagram+AI+Coach&currency_code=USD&amount=${amount}`;
     
-    // Convert markdown-style formatting to HTML
-    let formattedText = text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text
-        .replace(/\n\n/g, '</p><p>') // Paragraph breaks
-        .replace(/\n/g, '<br>') // Line breaks
-        .replace(/• /g, '<br>• '); // Bullet points with line breaks
+    const options = `
+        <div style="padding: 25px; text-align: center;">
+            <h3 style="color: #4a5568; margin-bottom: 10px;">Thank you for your support! 🙏</h3>
+            <p style="color: #6b7280; margin-bottom: 20px;">Your contribution helps keep this AI coaching service running!</p>
+            <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin: 20px 0;">
+                <a href="${buyMeCoffeeLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #ffdd00 0%, #ffaa00 100%); color: #333; padding: 12px 20px; text-decoration: none; border-radius: 10px; font-weight: bold; box-shadow: 0 4px 15px rgba(255, 221, 0, 0.3); transition: transform 0.2s; min-width: 140px;">
+                    ☕ Buy Me a Coffee<br><small>($${amount})</small>
+                </a>
+                <a href="${paypalLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #0070ba 0%, #003087 100%); color: white; padding: 12px 20px; text-decoration: none; border-radius: 10px; font-weight: bold; box-shadow: 0 4px 15px rgba(0, 112, 186, 0.3); transition: transform 0.2s; min-width: 140px;">
+                    💳 PayPal<br><small>($${amount})</small>
+                </a>
+            </div>
+            <p style="font-size: 13px; color: #9ca3af; margin-top: 15px;">
+                Every contribution, no matter the size, is deeply appreciated!<br>
+                <strong>Choose your preferred payment method above</strong>
+            </p>
+        </div>
+    `;
     
-   messageDiv.innerHTML = '<p>' + formattedText + '</p>';
-    chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    return messageDiv;
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:1000;';
+    modal.innerHTML = `
+        <div style="background:white;border-radius:15px;max-width:450px;margin:20px;box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+            ${options}
+            <button onclick="this.parentElement.parentElement.remove()" 
+                    style="background:#e5e7eb;border:none;padding:10px 25px;border-radius:8px;margin:10px;cursor:pointer;color:#374151;font-size:14px;">
+                Close
+            </button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    closeSupportNotice();
 }
+
+        function openCustomDonation() {
+            const amount = prompt("Enter any amount you'd like to contribute (e.g., 3.50):");
+            if (amount && !isNaN(amount) && parseFloat(amount) > 0) {
+                openDonation(parseFloat(amount));
+            }
+        }
+
+        function addMessage(message, sender) {
+            const container = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'ai-message');
+            messageDiv.textContent = message;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
 
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
@@ -711,7 +788,225 @@ async function generateResponse(userMessage) {
             }
         }
 
-        // Remove old helper functions - Claude API handles everything now
+        function generateResponse(userMessage) {
+            const message = userMessage.toLowerCase();
+            
+            // Basic fallback to ensure responses always work
+            if (!userType) {
+                return "I'd be happy to help! Please make sure you've completed the assessment or selected your type first.";
+            }
+            
+            try {
+                // Relationship/marriage questions
+                if (message.includes('wife') || message.includes('husband') || message.includes('marriage') || message.includes('relationship') || message.includes('partner')) {
+                    return handleRelationshipQuestion(message, userType);
+                }
+                
+                // Specific type mentions (3, 1, 2, etc.)
+                const typeMatch = message.match(/type [1-9]|(?:^|\s)([1-9])(?:\s|$)/);
+                if (typeMatch) {
+                    const mentionedType = typeMatch[1] || typeMatch[0].replace('type ', '');
+                    if (mentionedType && mentionedType !== userType.toString()) {
+                        return handleTypeComparisonQuestion(userType, parseInt(mentionedType), message);
+                    }
+                }
+                
+                // Work/collaboration questions
+                if (message.includes('work with') || message.includes('working with') || message.includes('collaborate')) {
+                    return handleWorkQuestion(message, userType);
+                }
+                
+                // Personal growth questions
+                if (message.includes('active') || message.includes('motivation') || message.includes('energy') || message.includes('more')) {
+                    return handleGrowthQuestion(message, userType);
+                }
+                
+                // Direct questions
+                if (message.includes('how') || message.includes('what') || message.includes('why') || message.includes('when')) {
+                    return handleDirectQuestion(message, userType);
+                }
+                
+                // Type-specific responses based on user's type
+                return getTypeSpecificResponse(message, userType);
+                
+            } catch (error) {
+                // Fallback response if anything breaks
+                console.error('Response generation error:', error);
+                const fallbackResponses = {
+                    1: "As a Type 1, your attention to detail is valuable. What's on your mind today?",
+                    2: "Your caring nature as a Type 2 is a gift. How can I help you explore this further?",
+                    3: "Type 3s like you are naturally driven. What challenge are you facing?",
+                    4: "Your depth as a Type 4 brings richness to everything. What are you feeling?",
+                    5: "Your analytical mind as a Type 5 is impressive. What are you trying to understand?",
+                    6: "Type 6s like you think things through carefully. What's concerning you?",
+                    7: "Your enthusiasm as a Type 7 is wonderful. What's exciting you lately?",
+                    8: "Your strength as a Type 8 is needed. How can you use your power here?",
+                    9: "Your peaceful presence as a Type 9 is calming. What's most important to you right now?"
+                };
+                return fallbackResponses[userType] || "I'm here to help you explore your Enneagram type. What would you like to discuss?";
+            }
+        }
+
+        function handleRelationshipQuestion(message, userType) {
+            const relationshipDynamics = {
+                "1-3": {
+                    synergies: "You both value improvement and getting things done. Type 1's principles can ground Type 3's ambition, while Type 3's adaptability can help Type 1 be more flexible.",
+                    challenges: "Type 1 may see Type 3 as cutting corners or being inauthentic, while Type 3 may find Type 1 too rigid or critical of their methods.",
+                    advice: "Type 1: Appreciate your partner's drive and results. Type 3: Value your partner's integrity and depth over quick wins."
+                },
+                "1-2": {
+                    synergies: "Both want to help and improve the world. You share strong values and a desire to do good.",
+                    challenges: "Type 1's criticism may hurt Type 2's feelings, while Type 2's emotional needs may feel overwhelming to Type 1.",
+                    advice: "Focus on your shared values. Type 1: express appreciation more. Type 2: give space for processing."
+                },
+                "2-3": {
+                    synergies: "Both are people-focused and adaptive. Type 2's warmth supports Type 3's goals, while Type 3's success makes Type 2 feel proud.",
+                    challenges: "Both may lose touch with their own needs while focusing on image or others. Authenticity can be challenging.",
+                    advice: "Create regular check-ins about your real feelings and needs, not just what looks good or helps others."
+                },
+                "3-4": {
+                    synergies: "Type 3 brings optimism and energy, while Type 4 brings depth and authenticity. You can balance achievement with meaning.",
+                    challenges: "Type 3 may find Type 4 too moody or negative, while Type 4 may see Type 3 as superficial or disconnected from feelings.",
+                    advice: "Type 3: slow down to appreciate emotional depth. Type 4: recognize that action and feelings can coexist."
+                },
+                "3-5": {
+                    synergies: "Type 3's energy and Type 5's expertise make a powerful combination. You can achieve meaningful goals together.",
+                    challenges: "Type 3 may feel Type 5 is too withdrawn or slow, while Type 5 may find Type 3 too demanding of time and energy.",
+                    advice: "Type 3: respect your partner's need for solitude and reflection. Type 5: share your insights and engage with your partner's world."
+                },
+                "4-5": {
+                    synergies: "Both value depth, authenticity, and understanding. You can create a rich inner world together.",
+                    challenges: "Both may withdraw when stressed, leading to isolation. Emotional intensity may be overwhelming.",
+                    advice: "Practice staying connected during difficult times. Take turns being the one who reaches out."
+                },
+                "5-6": {
+                    synergies: "Both are thoughtful and loyal. You can build a secure, understanding partnership based on trust.",
+                    challenges: "Both may be anxious or overthink. Type 6 may need more reassurance than Type 5 naturally gives.",
+                    advice: "Type 5: offer more verbal reassurance. Type 6: trust your partner's commitment even when they're quiet."
+                },
+                "6-7": {
+                    synergies: "Type 6's loyalty grounds Type 7's enthusiasm, while Type 7's optimism helps Type 6 worry less.",
+                    challenges: "Type 6 may find Type 7 unreliable or avoiding problems, while Type 7 may feel constrained by Type 6's anxiety.",
+                    advice: "Type 6: trust your partner's positive intentions. Type 7: show up consistently for important matters."
+                },
+                "7-8": {
+                    synergies: "Both are energetic and action-oriented. You can tackle big goals and have adventures together.",
+                    challenges: "Both may avoid vulnerability. Type 8 may be too intense for Type 7, while Type 7 may seem superficial to Type 8.",
+                    advice: "Create space for both lightness and depth. Practice sharing feelings, not just ideas and plans."
+                },
+                "8-9": {
+                    synergies: "Type 8's energy motivates Type 9, while Type 9's calm balances Type 8's intensity.",
+                    challenges: "Type 8 may become frustrated with Type 9's pace, while Type 9 may feel overwhelmed by Type 8's intensity.",
+                    advice: "Type 8: practice patience and gentleness. Type 9: speak up about your needs and preferences."
+                },
+                "1-9": {
+                    synergies: "Type 1's structure helps Type 9 get organized, while Type 9's calm helps Type 1 relax their standards.",
+                    challenges: "Type 1 may become frustrated with Type 9's procrastination, while Type 9 may feel criticized or pressured.",
+                    advice: "Type 1: focus on acceptance over correction. Type 9: communicate your needs clearly rather than withdrawing."
+                }
+            };
+
+            if (message.includes('type 3') || message.includes(' 3')) {
+                const dynamics = relationshipDynamics[`${userType}-3`] || relationshipDynamics[`3-${userType}`];
+                if (dynamics) {
+                    return `Great question about Type ${userType} and Type 3 relationships!\n\n**Synergies:** ${dynamics.synergies}\n\n**Potential Challenges:** ${dynamics.challenges}\n\n**Advice:** ${dynamics.advice}`;
+                }
+            }
+
+            return "Relationships between different Enneagram types can be incredibly rewarding when both people understand each other's motivations. What specific aspect of your relationship dynamic would you like to explore?";
+        }
+
+        function handleTypeComparisonQuestion(userType, otherType, message) {
+            const typeDescriptions = {
+                1: "principled, organized, and improvement-focused",
+                2: "caring, helpful, and relationship-oriented", 
+                3: "ambitious, adaptable, and success-oriented",
+                4: "authentic, creative, and emotionally deep",
+                5: "perceptive, independent, and knowledge-seeking",
+                6: "loyal, responsible, and security-oriented",
+                7: "enthusiastic, versatile, and possibility-focused",
+                8: "confident, decisive, and justice-oriented",
+                9: "peaceful, easygoing, and harmony-seeking"
+            };
+
+            return `Working with a Type ${otherType} when you're a Type ${userType} can be really interesting! Type ${otherType}s are typically ${typeDescriptions[otherType]}, while you as a Type ${userType} are ${typeDescriptions[userType]}. The key is understanding what motivates each of you. What specific situation are you trying to navigate together?`;
+        }
+
+        function handleWorkQuestion(message, userType) {
+            const workAdvice = {
+                1: "Focus on shared standards and clear expectations. Appreciate different approaches to quality results.",
+                2: "Remember that not everyone shows care the same way. Focus on the work relationship, not personal connection.",
+                3: "Recognize that not everyone is motivated by achievement. Adapt your communication style to their values.",
+                4: "Appreciate that others may not need the same emotional depth. Focus on the task while honoring authenticity.",
+                5: "Share your expertise when asked, but don't expect others to need as much information before acting.",
+                6: "Build trust through consistency. Not everyone needs as much security, but everyone appreciates reliability.",
+                7: "Remember that others may prefer depth over breadth. Finish commitments before starting new projects.",
+                8: "Use your natural leadership while being mindful of others' need for autonomy and gentler communication.",
+                9: "Your diplomatic skills are valuable. Practice speaking up about your priorities and preferences."
+            };
+
+            return `${workAdvice[userType]} What specific work challenge are you facing with this person?`;
+        }
+
+        function handleGrowthQuestion(message, userType) {
+            const growthAdvice = {
+                1: "Start small and focus on progress over perfection. Set 'good enough' standards for some areas of life.",
+                2: "Practice asking for what you need directly. Schedule self-care like you would any other important appointment.",
+                3: "Try activities purely for enjoyment, not achievement. Practice being instead of doing.",
+                4: "Focus on what you have rather than what's missing. Engage with the world around you, not just your inner world.",
+                5: "Set small, specific action goals. Remember that energy often comes from engagement, not just conservation.",
+                6: "Practice trusting your own judgment. Take small risks to build confidence in your decision-making.",
+                7: "Choose depth over breadth in some areas. Practice staying with difficult feelings instead of moving away from them.",
+                8: "Practice vulnerability and asking for help. Use your energy to build up rather than just protect.",
+                9: "Start with tiny actions toward your priorities. Use external structure and accountability to get moving."
+            };
+
+            if (message.includes('active') || message.includes('motivation') || message.includes('energy')) {
+                const typeSpecific = {
+                    1: "Channel your improvement drive into physical activity. Set structured, achievable fitness goals.",
+                    2: "Find active ways to connect with others - group fitness, walking meetings, or family activities.",
+                    3: "Set fitness goals you can track and achieve. Competition or visible progress will motivate you.",
+                    4: "Choose activities that feel meaningful or aesthetic - dance, yoga, hiking in beautiful places.",
+                    5: "Start with solo activities that don't drain your social energy. Research the most efficient approaches.",
+                    6: "Find activities with a community or buddy system for accountability and security.",
+                    7: "Try variety! Mix different activities to keep it interesting and avoid boredom.",
+                    8: "Choose intense, challenging activities. Competition or physical challenges will energize you.",
+                    9: "Start incredibly small - a 5-minute walk. Build routine gradually and get external accountability."
+                };
+                return typeSpecific[userType];
+            }
+
+            return growthAdvice[userType];
+        }
+
+        function handleDirectQuestion(message, userType) {
+            // Handle specific questions that expect direct answers
+            if (message.includes('trouble spots') || message.includes('challenges')) {
+                return `The main relationship challenges for your type combination typically involve: communication style differences, different priorities and values, and how you each handle stress. Would you like me to elaborate on any of these areas?`;
+            }
+            
+            if (message.includes('answer') && message.includes('question')) {
+                return `You're absolutely right - I should give you direct answers! I'm here to provide specific insights about Enneagram types and relationships. What would you like to know?`;
+            }
+
+            return `That's a great specific question. Based on your Type ${userType} perspective, what aspect of this situation feels most challenging for you right now?`;
+        }
+
+        function getTypeSpecificResponse(message, userType) {
+            const specificResponses = {
+                1: "Your attention to detail and high standards are strengths. What situation is triggering your inner critic right now?",
+                2: "Your caring nature is a gift. Are you remembering to take care of your own needs too?",
+                3: "Your drive and adaptability are impressive. What does authentic success look like for you personally?",
+                4: "Your emotional depth and authenticity matter. What's stirring up your feelings today?",
+                5: "Your analytical perspective is valuable. What are you trying to understand or figure out?",
+                6: "Your loyalty and careful thinking serve you well. What's making you feel uncertain right now?",
+                7: "Your enthusiasm and optimism are contagious. What new possibility is exciting you?",
+                8: "Your strength and directness are needed in this world. How can you use your power constructively here?",
+                9: "Your peaceful presence is a gift to others. What's most important to you in this situation?"
+            };
+
+            return specificResponses[userType] || "I'd love to help you explore this further. Can you tell me more about what's on your mind?";
+        }
 
         // System starts on the start page - no initialization needed
     </script>
