@@ -315,6 +315,7 @@
             <div style="text-align: center; margin-top: 30px;">
                 <button class="btn" onclick="backToStart()" style="background: #6c757d;">← Back to Start</button>
             </div>
+            
         </div>
         
         <div id="assessment" class="hidden">
@@ -330,8 +331,10 @@
             
             <div style="text-align: center; margin-top: 20px;">
                 <button class="btn" id="nextBtn" onclick="nextQuestion()">Next Question</button>
+                <button class="btn" id="prevBtn" onclick="previousQuestion()" style="display: none; background: #6c757d; margin-left: 10px;">← Previous</button>
                 <button class="btn hidden" id="resultsBtn" onclick="showResults()">Get My Results</button>
                 <button class="btn" onclick="backToStart()" style="background: #6c757d; margin-left: 10px;">← Back to Start</button>
+                <button class="btn" onclick="startOver()" style="background: #dc3545; margin-left: 10px;">Start Over</button>
             </div>
         </div>
 
@@ -512,11 +515,26 @@
         let messageCount = 0;
         let supportNoticeShown = false;
 
+let conversationHistory = [];
+
         function startAssessment() {
-            document.getElementById('startPage').classList.add('hidden');
-            document.getElementById('assessment').classList.remove('hidden');
+    document.getElementById('startPage').classList.add('hidden');
+    document.getElementById('assessment').classList.remove('hidden');
+    
+    // Check if there's saved progress
+    if (loadAssessmentState() && currentQuestion > 0) {
+        if (confirm('You have saved progress. Would you like to continue where you left off?')) {
+            loadQuestion();
+        } else {
+            currentQuestion = 0;
+            answers = new Array(108).fill(0);
+            sessionStorage.removeItem('enneagramAssessment');
             loadQuestion();
         }
+    } else {
+        loadQuestion();
+    }
+}
 
         function showTypeSelector() {
             document.getElementById('startPage').classList.add('hidden');
@@ -542,6 +560,29 @@
             answers = new Array(108).fill(0);
             userType = null;
         }
+        function startOver() {
+    if (confirm('Are you sure you want to start over? This will reset all your answers.')) {
+        currentQuestion = 0;
+        answers = new Array(108).fill(0);
+        userType = null;
+        messageCount = 0;
+        supportNoticeShown = false;
+        conversationHistory = [];
+        
+        // Clear any saved state
+        sessionStorage.removeItem('enneagramAssessment');
+        
+        // Reset UI
+        document.getElementById('assessment').classList.add('hidden');
+        document.getElementById('results').style.display = 'none';
+        document.getElementById('typeSelector').classList.add('hidden');
+        document.getElementById('startPage').classList.remove('hidden');
+        
+        // Reset buttons
+        document.getElementById('nextBtn').classList.remove('hidden');
+        document.getElementById('resultsBtn').classList.add('hidden');
+    }
+}
 
         function showChatInterface() {
             const typeInfo = {
@@ -646,6 +687,8 @@
             if (answers[currentQuestion] > 0) {
                 document.getElementById(`q${currentQuestion}_${answers[currentQuestion]}`).checked = true;
             }
+            // Show/hide previous button
+document.getElementById('prevBtn').style.display = currentQuestion === 0 ? 'none' : 'inline-block';
         }
 
         function nextQuestion() {
@@ -656,6 +699,8 @@
             }
             
             answers[currentQuestion] = parseInt(selected.value);
+
+            saveAssessmentState();
             
             if (currentQuestion < 107) {
                 currentQuestion++;
@@ -666,6 +711,16 @@
             }
         }
 
+function previousQuestion() {
+    if (currentQuestion > 0) {
+        currentQuestion--;
+        loadQuestion();
+        document.getElementById('resultsBtn').classList.add('hidden');
+        document.getElementById('nextBtn').classList.remove('hidden');
+    }
+    saveAssessmentState();
+}
+        
         function calculateType() {
             const typeScores = new Array(9).fill(0);
             
@@ -695,27 +750,41 @@
             showChatInterface();
         }
 
-        function sendMessage() {
-            const input = document.getElementById('userInput');
-            const message = input.value.trim();
-            if (!message) return;
-            
-            // Add user message
-            addMessage(message, 'user');
-            input.value = '';
-            messageCount++;
-            
-            // Generate AI response
-            setTimeout(() => {
-                const response = generateResponse(message);
-                addMessage(response, 'ai');
-                
-                // Show support notice after 3rd message or after assessment completion
-                if ((messageCount >= 3 || userType) && !supportNoticeShown) {
-                    setTimeout(() => showSupportNotice(), 2000);
-                }
-            }, 1000);
+function sendMessage() {
+    const input = document.getElementById('userInput');
+    const message = input.value.trim();
+    if (!message) return;
+    
+    // Disable input while processing
+    input.disabled = true;
+    const sendBtn = input.nextElementSibling;
+    sendBtn.disabled = true;
+    const originalText = sendBtn.textContent;
+    sendBtn.textContent = 'Sending...';
+    
+    // Store in conversation history
+    conversationHistory.push({role: 'user', message: message});
+    
+    addMessage(message, 'user');
+    input.value = '';
+    messageCount++;
+    
+    setTimeout(() => {
+        const response = generateResponse(message);
+        conversationHistory.push({role: 'ai', message: response});
+        addMessage(response, 'ai');
+        
+        // Re-enable input
+        input.disabled = false;
+        sendBtn.disabled = false;
+        sendBtn.textContent = originalText;
+        input.focus();
+        
+        if (messageCount >= 3 && userType && !supportNoticeShown) {
+            setTimeout(() => showSupportNotice(), 2000);
         }
+    }, 1000);
+}
 
         function showSupportNotice() {
             if (!supportNoticeShown) {
@@ -789,63 +858,249 @@
         }
 
         function generateResponse(userMessage) {
-            const message = userMessage.toLowerCase();
-            
-            // Basic fallback to ensure responses always work
-            if (!userType) {
-                return "I'd be happy to help! Please make sure you've completed the assessment or selected your type first.";
-            }
-            
-            try {
-                // Relationship/marriage questions
-                if (message.includes('wife') || message.includes('husband') || message.includes('marriage') || message.includes('relationship') || message.includes('partner')) {
-                    return handleRelationshipQuestion(message, userType);
-                }
-                
-                // Specific type mentions (3, 1, 2, etc.)
-                const typeMatch = message.match(/type [1-9]|(?:^|\s)([1-9])(?:\s|$)/);
-                if (typeMatch) {
-                    const mentionedType = typeMatch[1] || typeMatch[0].replace('type ', '');
-                    if (mentionedType && mentionedType !== userType.toString()) {
-                        return handleTypeComparisonQuestion(userType, parseInt(mentionedType), message);
-                    }
-                }
-                
-                // Work/collaboration questions
-                if (message.includes('work with') || message.includes('working with') || message.includes('collaborate')) {
-                    return handleWorkQuestion(message, userType);
-                }
-                
-                // Personal growth questions
-                if (message.includes('active') || message.includes('motivation') || message.includes('energy') || message.includes('more')) {
-                    return handleGrowthQuestion(message, userType);
-                }
-                
-                // Direct questions
-                if (message.includes('how') || message.includes('what') || message.includes('why') || message.includes('when')) {
-                    return handleDirectQuestion(message, userType);
-                }
-                
-                // Type-specific responses based on user's type
-                return getTypeSpecificResponse(message, userType);
-                
-            } catch (error) {
-                // Fallback response if anything breaks
-                console.error('Response generation error:', error);
-                const fallbackResponses = {
-                    1: "As a Type 1, your attention to detail is valuable. What's on your mind today?",
-                    2: "Your caring nature as a Type 2 is a gift. How can I help you explore this further?",
-                    3: "Type 3s like you are naturally driven. What challenge are you facing?",
-                    4: "Your depth as a Type 4 brings richness to everything. What are you feeling?",
-                    5: "Your analytical mind as a Type 5 is impressive. What are you trying to understand?",
-                    6: "Type 6s like you think things through carefully. What's concerning you?",
-                    7: "Your enthusiasm as a Type 7 is wonderful. What's exciting you lately?",
-                    8: "Your strength as a Type 8 is needed. How can you use your power here?",
-                    9: "Your peaceful presence as a Type 9 is calming. What's most important to you right now?"
-                };
-                return fallbackResponses[userType] || "I'm here to help you explore your Enneagram type. What would you like to discuss?";
-            }
+    // Ensure user has a type
+    if (!userType) {
+        return "I'd be happy to help! Please make sure you've completed the assessment or selected your type first.";
+    }
+    
+    // Get type info for context
+    const typeInfo = {
+        1: "The Perfectionist - principled, purposeful, self-controlled, and perfectionistic",
+        2: "The Helper - caring, interpersonal, demonstrative, generous, and people-pleasing", 
+        3: "The Achiever - self-assured, attractive, charming, ambitious, competent, and energetic",
+        4: "The Individualist - self-aware, sensitive, reserved, emotionally honest, creative, and personal",
+        5: "The Investigator - intense, cerebral, perceptive, innovative, secretive, and isolated",
+        6: "The Loyalist - reliable, hard-working, responsible, anxious, and suspicious",
+        7: "The Enthusiast - busy, fun-loving, spontaneous, versatile, distractible, and scattered",
+        8: "The Challenger - self-confident, strong, assertive, protective, resourceful, straight-talking, and decisive",
+        9: "The Peacemaker - accepting, trusting, stable, creative, optimistic, and supportive"
+    };
+    
+    // Create a comprehensive prompt for Claude
+    const prompt = `You are an expert Enneagram coach having a conversation with someone who is Type ${userType} (${typeInfo[userType]}). 
+
+Their question/message: "${userMessage}"
+
+Please respond as a knowledgeable, empathetic Enneagram coach. Consider:
+- Their Type ${userType} perspective, motivations, and typical challenges
+- How their type might relate to any other types mentioned
+- Practical, actionable insights for their personal growth
+- Relationship dynamics if they're asking about interactions with others
+- Be conversational, supportive, and insightful
+
+Respond directly to what they're asking about, whether it's relationships, work, personal growth, type comparisons, or any other Enneagram-related topic.`;
+
+    // For now, return a response that acknowledges this is meant to be Claude
+    // In a real implementation, this would connect to Claude's API
+    return generateEnneagramResponse(userMessage, userType);
+}
+
+function generateEnneagramResponse(message, userType) {
+    const typeTraits = {
+        1: "As a Type 1, you value excellence, improvement, and doing things right",
+        2: "As a Type 2, you're naturally caring and attentive to others' needs",
+        3: "As a Type 3, you're driven, adaptable, and focused on achievement",
+        4: "As a Type 4, you value authenticity, depth, and meaningful expression",
+        5: "As a Type 5, you appreciate knowledge, independence, and understanding",
+        6: "As a Type 6, you value security, loyalty, and careful planning",
+        7: "As a Type 7, you love possibilities, variety, and positive experiences",
+        8: "As a Type 8, you're naturally strong, direct, and protective of others",
+        9: "As a Type 9, you bring peace, understanding, and harmony to situations"
+    };
+
+    // Instead of keyword matching, provide contextual, conversational responses
+    return generateContextualResponse(message, userType, typeTraits[userType]);
+}
+
+function generateContextualResponse(message, userType, typeTrait) {
+    const lowerMessage = message.toLowerCase();
+    const tone = detectEmotionalTone(message);
+    const depth = getResponseDepth();
+    const scenario = getScenarioExample(userType, 'general');
+    
+    // Emotional tone prefixes
+    const tonePrefix = tone === 'frustrated' ? "I can hear the frustration in your message. " : 
+                       tone === 'sad' ? "It sounds like you're going through a difficult time. " : 
+                       tone === 'positive' ? "I love the energy in your message! " :
+                       tone === 'seeking' ? "I appreciate you reaching out for understanding. " : "";
+    
+    // More natural, varied responses that feel like talking to Claude
+    const responses = [
+        `${tonePrefix}${typeTrait}. That's such an insightful question. From your Type ${userType} perspective, you likely experience this through the lens of ${getTypeLens(userType)}. 
+
+What I find fascinating about your question is how it touches on ${getThemeFromMessage(message, userType)}. This is something many Type ${userType}s wrestle with.
+
+${scenario ? `It might be like ${scenario}.` : ''}
+
+Tell me more about what's driving this question for you - I'd love to understand the specific context you're navigating.`,
+
+        `${tonePrefix}${typeTrait}. This really resonates with the Type ${userType} experience. You're touching on something that goes to the heart of how your type moves through the world.
+
+${getPersonalizedInsight(message, userType)}
+
+${depth === 'deep' ? getIntegrationDirection(userType) : ''}
+
+I'm curious - how has this been showing up in your life lately? Understanding your specific situation will help me offer more targeted insights.`,
+
+        `${tonePrefix}What a thoughtful question. ${typeTrait}, and what you're describing connects to some core aspects of your type's journey.
+
+From my experience working with Type ${userType}s, this often relates to ${getTypicalChallenge(userType)}. But every person's experience is unique.
+
+${scenario ? `Many Type ${userType}s tell me about situations like: ${scenario}` : ''}
+
+Can you share more about what prompted this question? I'd love to explore this with you in a way that's most helpful for your specific situation.`
+    ];
+    
+    // For deeper conversations, add conversation starters
+    if (depth === 'deep' && Math.random() > 0.5) {
+        const starters = getConversationStarters(userType);
+        const randomStarter = starters[Math.floor(Math.random() * starters.length)];
+        if (randomStarter) {
+            responses[0] += `\n\nYou might also find it helpful to explore: ${randomStarter}`;
         }
+    }
+    
+    // Randomly select a response style to feel more natural
+    return responses[Math.floor(Math.random() * responses.length)];
+}
+
+function getTypeLens(type) {
+    const lenses = {
+        1: "your desire for improvement and getting things right",
+        2: "your focus on relationships and helping others",
+        3: "your drive for success and achievement",
+        4: "your search for authenticity and meaning",
+        5: "your need to understand and maintain your energy",
+        6: "your desire for security and loyalty",
+        7: "your love of possibilities and keeping things positive",
+        8: "your focus on justice and protecting others",
+        9: "your desire for harmony and peace"
+    };
+    return lenses[type];
+}
+
+function getThemeFromMessage(message, userType) {
+    // Analyze the message more holistically rather than keyword matching
+    const themes = {
+        1: "the balance between high standards and self-compassion",
+        2: "the dance between caring for others and honoring your own needs",
+        3: "the relationship between achieving goals and staying true to yourself",
+        4: "the tension between feeling different and finding your place in the world",
+        5: "the balance between understanding deeply and engaging with life",
+        6: "the interplay between seeking security and trusting yourself",
+        7: "the challenge of embracing both joy and difficult emotions",
+        8: "the balance between strength and vulnerability",
+        9: "the journey between keeping peace and advocating for yourself"
+    };
+    return themes[userType];
+}
+
+function getPersonalizedInsight(message, userType) {
+    const insights = {
+        1: "Your perfectionist nature is both a gift and sometimes a burden. The key is learning when 'good enough' truly is perfect.",
+        2: "Your caring heart is beautiful, but remember that you can't pour from an empty cup. Your needs matter too.",
+        3: "Your ability to adapt and achieve is remarkable. The growth edge is staying connected to what truly fulfills you.",
+        4: "Your emotional depth and authenticity are gifts to the world. Sometimes the 'missing piece' is accepting what's already here.",
+        5: "Your thoughtful, analytical approach offers unique insights. The growth often comes in sharing that wisdom with others.",
+        6: "Your loyalty and careful thinking are valuable. Learning to trust your own judgment is often the next step.",
+        7: "Your optimism and enthusiasm bring light to others. Sometimes the deepest growth comes from sitting with the difficult feelings too.",
+        8: "Your strength and directness create positive change. The vulnerability underneath that strength is equally powerful.",
+        9: "Your peaceful presence is a gift. Your voice and preferences matter just as much as everyone else's."
+    };
+    return insights[userType];
+}
+
+function getTypicalChallenge(userType) {
+    const challenges = {
+        1: "the ongoing dialogue between your inner critic and your compassionate self",
+        2: "finding the balance between giving to others and receiving what you need",
+        3: "staying connected to your authentic self while achieving your goals",
+        4: "embracing both the beauty and the ordinary moments of life",
+        5: "moving from understanding to action, from thinking to engaging",
+        6: "learning to trust your own inner wisdom alongside external guidance",
+        7: "developing the capacity to stay present with both joy and sorrow",
+        8: "allowing others to see and support your more tender aspects",
+        9: "finding your voice and honoring your own priorities"
+    };
+    return challenges[userType];
+}
+
+// Helper functions for more natural responses
+function getTypeFocus(type) {
+    const focuses = {
+        1: "correctness, improvement, and maintaining high standards",
+        2: "helping others and building meaningful connections", 
+        3: "achieving goals, success, and positive image",
+        4: "authenticity, depth, and unique self-expression",
+        5: "understanding, competence, and maintaining energy",
+        6: "security, loyalty, and anticipating potential problems",
+        7: "possibilities, variety, and keeping things positive",
+        8: "justice, control, and protecting themselves and others",
+        9: "harmony, comfort, and avoiding conflict"
+    };
+    return focuses[type];
+}
+
+function getGrowthDirection(type) {
+    const directions = {
+        1: "learning to accept 'good enough' and practicing self-compassion",
+        2: "focusing on your own needs and developing healthy boundaries",
+        3: "slowing down to connect with your authentic feelings and values",
+        4: "engaging with the present moment and taking practical action",
+        5: "stepping into action and sharing your knowledge with others",
+        6: "trusting your own judgment and taking confident action",
+        7: "developing depth and staying present with difficult emotions",
+        8: "practicing vulnerability and considering others' perspectives",
+        9: "speaking up for your priorities and taking initiative"
+    };
+    return directions[type];
+}
+
+function getStressPattern(type) {
+    const patterns = {
+        1: "become more critical and rigid, feeling like everything is wrong",
+        2: "become demanding and manipulative when feeling unappreciated",
+        3: "become deceptive and cut corners to maintain your image",
+        4: "withdraw into depression and become overly dramatic",
+        5: "become more isolated and may act out impulsively",
+        6: "become reactive and either overly compliant or rebellious",
+        7: "become scattered and may act out destructively",
+        8: "become more aggressive and controlling",
+        9: "become stubborn and passive-aggressive"
+    };
+    return patterns[type];
+}
+
+function getStressAdvice(type) {
+    const advice = {
+        1: "Try to practice acceptance and remember that perfection isn't always necessary. Take breaks and be gentle with yourself.",
+        2: "Focus on your own needs first. It's not selfish - you can't pour from an empty cup.",
+        3: "Slow down and check in with your real feelings. Your worth isn't just in what you achieve.",
+        4: "Engage with the world around you. Sometimes action, even small steps, can shift your emotional state.",
+        5: "Don't isolate completely. Reach out to trusted people and share what you're experiencing.",
+        6: "Ground yourself in facts rather than worst-case scenarios. Trust your own judgment.",
+        7: "Stay present with the difficult feelings instead of moving away from them. They'll pass.",
+        8: "Practice vulnerability. Let trusted people help you carry the load.",
+        9: "Speak up about what you need. Your voice and preferences matter."
+    };
+    return advice[type];
+}
+
+function getTypeSpecificInsight(type, message) {
+    // This could be more sophisticated, but for now, return general insights
+    const insights = {
+        1: "Your attention to detail and high standards are gifts, even when they feel burdensome.",
+        2: "Your ability to understand and care for others is remarkable - just remember you matter too.",
+        3: "Your drive and adaptability help you achieve amazing things. The key is staying connected to what truly matters to you.",
+        4: "Your emotional depth and creativity bring beauty and authenticity to everything you touch.",
+        5: "Your thoughtful analysis and unique perspective offer valuable insights others often miss.",
+        6: "Your loyalty and ability to anticipate problems make you an invaluable friend and team member.",
+        7: "Your optimism and enthusiasm bring joy and possibility to any situation.",
+        8: "Your strength and directness help you protect others and create positive change in the world.",
+        9: "Your ability to see all sides and create harmony is a rare and precious gift."
+    };
+    return insights[type];
+}
 
         function handleRelationshipQuestion(message, userType) {
             const relationshipDynamics = {
@@ -1008,7 +1263,112 @@
             return specificResponses[userType] || "I'd love to help you explore this further. Can you tell me more about what's on your mind?";
         }
 
-        // System starts on the start page - no initialization needed
+        // Add these NEW functions before the closing </script> tag
+
+function detectEmotionalTone(message) {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('frustrated') || lowerMessage.includes('angry') || lowerMessage.includes('annoying') || lowerMessage.includes('irritated')) {
+        return 'frustrated';
+    }
+    if (lowerMessage.includes('sad') || lowerMessage.includes('depressed') || lowerMessage.includes('down') || lowerMessage.includes('overwhelmed')) {
+        return 'sad';
+    }
+    if (lowerMessage.includes('excited') || lowerMessage.includes('amazing') || lowerMessage.includes('great') || lowerMessage.includes('wonderful')) {
+        return 'positive';
+    }
+    if (lowerMessage.includes('confused') || lowerMessage.includes('help') || lowerMessage.includes('understand') || lowerMessage.includes('how do i')) {
+        return 'seeking';
+    }
+    return 'neutral';
+}
+
+function getResponseDepth() {
+    if (conversationHistory.length < 4) return 'surface';
+    if (conversationHistory.length < 8) return 'moderate';
+    return 'deep';
+}
+
+function getScenarioExample(userType, theme) {
+    const scenarios = {
+        1: {
+            work: "Like when a colleague submits work that's 'good enough' but you can see five ways to improve it",
+            relationships: "When your partner leaves dishes in the sink and you're torn between saying something or just doing it yourself",
+            general: "When you notice errors everywhere but wonder if pointing them out makes you seem critical"
+        },
+        2: {
+            work: "When you're helping everyone else with their projects but falling behind on your own deadlines",
+            relationships: "When you sense someone's upset but they say 'I'm fine' and you're not sure whether to push or give space",
+            general: "When you've been giving so much that you're exhausted but feel guilty saying no"
+        },
+        3: {
+            work: "When you're crushing your goals but wondering if you're becoming someone you don't recognize",
+            relationships: "When you catch yourself adapting your personality to what you think others want to see",
+            general: "When success feels hollow because you're not sure it reflects who you really are"
+        },
+        4: {
+            work: "When you're surrounded by people but feel like nobody really 'gets' you",
+            relationships: "When you're envious of what others have but also judgmental about their 'ordinary' choices",
+            general: "When you feel like you're missing some essential piece that everyone else has"
+        },
+        5: {
+            work: "When meetings drain your energy and you need three hours alone just to recover",
+            relationships: "When someone wants emotional support but you don't know what to say or do",
+            general: "When you understand something deeply but struggle to explain it to others"
+        },
+        6: {
+            work: "When you've thought through every possible problem but your team thinks you're being negative",
+            relationships: "When you need reassurance but don't want to seem needy or insecure",
+            general: "When you can't tell if your worry is realistic preparation or just anxiety"
+        },
+        7: {
+            work: "When you have ten exciting projects but struggle to focus deeply on any of them",
+            relationships: "When conflict arises and your instinct is to change the subject or make a joke",
+            general: "When you feel restless in routine but know some things require sustained effort"
+        },
+        8: {
+            work: "When you see injustice and want to fight it but worry about coming across as aggressive",
+            relationships: "When you care deeply but struggle to show your tender feelings",
+            general: "When you want to protect others but they see your intensity as intimidating"
+        },
+        9: {
+            work: "When you have strong opinions but stay quiet to keep the peace",
+            relationships: "When you merge so much with others' needs that you lose track of your own",
+            general: "When you know what you want but can't seem to take action on your priorities"
+        }
+    };
+    return scenarios[userType]?.[theme] || scenarios[userType]?.general || null;
+}
+
+function getIntegrationDirection(userType) {
+    const directions = {
+        1: "When you're growing, you move toward Type 7's spontaneity and joy - allowing yourself to be more flexible and playful",
+        2: "When you're growing, you move toward Type 4's self-awareness and authenticity - getting in touch with your own feelings and needs",
+        3: "When you're growing, you move toward Type 6's loyalty and commitment to others - focusing on relationships over just achievements",
+        4: "When you're growing, you move toward Type 1's objectivity and principled action - taking concrete steps toward your ideals",
+        5: "When you're growing, you move toward Type 8's confident action and leadership - stepping into your power and taking charge",
+        6: "When you're growing, you move toward Type 9's calm and trusting presence - relaxing into confidence and inner peace",
+        7: "When you're growing, you move toward Type 5's focus and depth - developing the ability to go deep rather than wide",
+        8: "When you're growing, you move toward Type 2's care and consideration for others - showing your nurturing side",
+        9: "When you're growing, you move toward Type 3's focus and decisive action - taking initiative on what matters to you"
+    };
+    return directions[userType];
+}
+
+function getConversationStarters(userType) {
+    const starters = {
+        1: ["How do you handle it when others don't meet your standards?", "What does 'good enough' mean to you?", "When do you feel most at peace with imperfection?"],
+        2: ["How do you know when you're giving too much?", "What do you do when you need help but don't want to ask?", "When do you feel most cared for by others?"],
+        3: ["How do you stay connected to what truly matters to you?", "When do you feel most authentic?", "What does success mean to you personally, not professionally?"],
+        4: ["How do you find meaning in ordinary moments?", "What helps when you feel misunderstood?", "When do you feel most connected to others?"],
+        5: ["How do you balance understanding with taking action?", "When do you feel most energized?", "What draws you out of your shell?"],
+        6: ["How do you distinguish between realistic and anxious thoughts?", "When do you trust your own judgment?", "What makes you feel most secure?"],
+        7: ["How do you stay present with difficult emotions?", "What gives your life real depth?", "When do you feel most grounded?"],
+        8: ["How do you show your softer side safely?", "When has vulnerability actually increased your power?", "What makes you feel most understood?"],
+        9: ["How do you speak up for what matters to you?", "When do you feel most motivated to take action?", "What helps you connect with your own priorities?"]
+    };
+    return starters[userType] || [];
+}
     </script>
 </body>
 </html>
