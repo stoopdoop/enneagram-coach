@@ -238,10 +238,68 @@
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+@media (max-width: 600px) {
+    .container {
+        padding: 15px;
+        margin: 10px;
+    }
+    
+    .type-option {
+        font-size: 14px;
+        padding: 15px;
+    }
+    
+    .options {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .option {
+        margin: 5px;
+        min-width: 60px;
+    }
+    
+    .option label {
+        font-size: 11px;
+    }
+    
+    .chat-input {
+        flex-direction: column;
+    }
+    
+    .chat-input input {
+        margin-bottom: 10px;
+    }
+    
+    h1 {
+        font-size: 24px;
+    }
+    
+    h2 {
+        font-size: 20px;
+    }
+}
+
+        @media (min-width: 601px) {
+    div[onclick="startAssessment()"]:hover,
+    div[onclick="showTypeSelector()"]:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    }
+}
+        
     </style>
 </head>
 <body>
+    <div id="loadingScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+        <div style="text-align: center; color: white;">
+            <h2>🌟 Loading AI Enneagram Coach...</h2>
+            <div style="margin-top: 20px; font-size: 48px;">⏳</div>
+        </div>
+    </div>
     <div class="container">
+        
         <h1 style="text-align: center; color: #4a5568;">🌟 AI Enneagram Coach</h1>
         
         <div id="startPage">
@@ -375,6 +433,9 @@
                         </div>
                         <button class="close-support" onclick="closeSupportNotice()">×</button>
                     </div>
+                </div>
+                <div style="text-align: center; margin-top: 15px;">
+                    <button class="btn" onclick="exportConversation()" style="background: #6c757d; font-size: 14px; padding: 8px 16px;">📥 Export Conversation</button>
                 </div>
             </div>
         </div>
@@ -517,6 +578,27 @@
 
 let conversationHistory = [];
 
+function saveAssessmentState() {
+    const state = {
+        currentQuestion,
+        answers,
+        userType
+    };
+    sessionStorage.setItem('enneagramAssessment', JSON.stringify(state));
+}
+
+function loadAssessmentState() {
+    const saved = sessionStorage.getItem('enneagramAssessment');
+    if (saved) {
+        const state = JSON.parse(saved);
+        currentQuestion = state.currentQuestion;
+        answers = state.answers;
+        userType = state.userType;
+        return true;
+    }
+    return false;
+}
+        
         function startAssessment() {
     document.getElementById('startPage').classList.add('hidden');
     document.getElementById('assessment').classList.remove('hidden');
@@ -690,7 +772,7 @@ let conversationHistory = [];
             // Show/hide previous button
 document.getElementById('prevBtn').style.display = currentQuestion === 0 ? 'none' : 'inline-block';
         }
-
+        
         function nextQuestion() {
             const selected = document.querySelector(`input[name="q${currentQuestion}"]:checked`);
             if (!selected) {
@@ -857,6 +939,44 @@ function sendMessage() {
             }
         }
 
+function exportConversation() {
+    if (conversationHistory.length === 0) {
+        alert('No conversation to export yet!');
+        return;
+    }
+    
+    const typeNames = {
+        1: "The Perfectionist",
+        2: "The Helper",
+        3: "The Achiever",
+        4: "The Individualist",
+        5: "The Investigator",
+        6: "The Loyalist",
+        7: "The Enthusiast",
+        8: "The Challenger",
+        9: "The Peacemaker"
+    };
+    
+    let text = `Enneagram AI Coach Conversation\n`;
+    text += `Type ${userType} - ${typeNames[userType]}\n`;
+    text += `Date: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}\n`;
+    text += `${'='.repeat(50)}\n\n`;
+    
+    conversationHistory.forEach(entry => {
+        text += `${entry.role === 'user' ? 'You' : 'AI Coach'}: ${entry.message}\n\n`;
+    });
+    
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `enneagram-coaching-type${userType}-${new Date().getTime()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+        
         function generateResponse(userMessage) {
     // Ensure user has a type
     if (!userType) {
@@ -1369,6 +1489,12 @@ function getConversationStarters(userType) {
     };
     return starters[userType] || [];
 }
+
+window.addEventListener('load', function() {
+    setTimeout(() => {
+        document.getElementById('loadingScreen').style.display = 'none';
+    }, 500);
+});
     </script>
 </body>
 </html>
