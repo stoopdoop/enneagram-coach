@@ -971,9 +971,114 @@ function exportConversation() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
+
+function detectEmotionalTone(message) {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('frustrated') || lowerMessage.includes('angry') || lowerMessage.includes('annoying') || lowerMessage.includes('irritated')) {
+        return 'frustrated';
+    }
+    if (lowerMessage.includes('sad') || lowerMessage.includes('depressed') || lowerMessage.includes('down') || lowerMessage.includes('overwhelmed')) {
+        return 'sad';
+    }
+    if (lowerMessage.includes('excited') || lowerMessage.includes('amazing') || lowerMessage.includes('great') || lowerMessage.includes('wonderful')) {
+        return 'positive';
+    }
+    if (lowerMessage.includes('confused') || lowerMessage.includes('help') || lowerMessage.includes('understand') || lowerMessage.includes('how do i')) {
+        return 'seeking';
+    }
+    return 'neutral';
+}
+
+function getResponseDepth() {
+    if (conversationHistory.length < 4) return 'surface';
+    if (conversationHistory.length < 8) return 'moderate';
+    return 'deep';
+}
+
+function getScenarioExample(userType, theme) {
+    const scenarios = {
+        1: {
+            work: "Like when a colleague submits work that's 'good enough' but you can see five ways to improve it",
+            relationships: "When your partner leaves dishes in the sink and you're torn between saying something or just doing it yourself",
+            general: "When you notice errors everywhere but wonder if pointing them out makes you seem critical"
+        },
+        2: {
+            work: "When you're helping everyone else with their projects but falling behind on your own deadlines",
+            relationships: "When you sense someone's upset but they say 'I'm fine' and you're not sure whether to push or give space",
+            general: "When you've been giving so much that you're exhausted but feel guilty saying no"
+        },
+        3: {
+            work: "When you're crushing your goals but wondering if you're becoming someone you don't recognize",
+            relationships: "When you catch yourself adapting your personality to what you think others want to see",
+            general: "When success feels hollow because you're not sure it reflects who you really are"
+        },
+        4: {
+            work: "When you're surrounded by people but feel like nobody really 'gets' you",
+            relationships: "When you're envious of what others have but also judgmental about their 'ordinary' choices",
+            general: "When you feel like you're missing some essential piece that everyone else has"
+        },
+        5: {
+            work: "When meetings drain your energy and you need three hours alone just to recover",
+            relationships: "When someone wants emotional support but you don't know what to say or do",
+            general: "When you understand something deeply but struggle to explain it to others"
+        },
+        6: {
+            work: "When you've thought through every possible problem but your team thinks you're being negative",
+            relationships: "When you need reassurance but don't want to seem needy or insecure",
+            general: "When you can't tell if your worry is realistic preparation or just anxiety"
+        },
+        7: {
+            work: "When you have ten exciting projects but struggle to focus deeply on any of them",
+            relationships: "When conflict arises and your instinct is to change the subject or make a joke",
+            general: "When you feel restless in routine but know some things require sustained effort"
+        },
+        8: {
+            work: "When you see injustice and want to fight it but worry about coming across as aggressive",
+            relationships: "When you care deeply but struggle to show your tender feelings",
+            general: "When you want to protect others but they see your intensity as intimidating"
+        },
+        9: {
+            work: "When you have strong opinions but stay quiet to keep the peace",
+            relationships: "When you merge so much with others' needs that you lose track of your own",
+            general: "When you know what you want but can't seem to take action on your priorities"
+        }
+    };
+    return scenarios[userType]?.[theme] || scenarios[userType]?.general || null;
+}
+
+function getIntegrationDirection(userType) {
+    const directions = {
+        1: "When you're growing, you move toward Type 7's spontaneity and joy - allowing yourself to be more flexible and playful",
+        2: "When you're growing, you move toward Type 4's self-awareness and authenticity - getting in touch with your own feelings and needs",
+        3: "When you're growing, you move toward Type 6's loyalty and commitment to others - focusing on relationships over just achievements",
+        4: "When you're growing, you move toward Type 1's objectivity and principled action - taking concrete steps toward your ideals",
+        5: "When you're growing, you move toward Type 8's confident action and leadership - stepping into your power and taking charge",
+        6: "When you're growing, you move toward Type 9's calm and trusting presence - relaxing into confidence and inner peace",
+        7: "When you're growing, you move toward Type 5's focus and depth - developing the ability to go deep rather than wide",
+        8: "When you're growing, you move toward Type 2's care and consideration for others - showing your nurturing side",
+        9: "When you're growing, you move toward Type 3's focus and decisive action - taking initiative on what matters to you"
+    };
+    return directions[userType];
+}
+
+function getConversationStarters(userType) {
+    const starters = {
+        1: ["How do you handle it when others don't meet your standards?", "What does 'good enough' mean to you?", "When do you feel most at peace with imperfection?"],
+        2: ["How do you know when you're giving too much?", "What do you do when you need help but don't want to ask?", "When do you feel most cared for by others?"],
+        3: ["How do you stay connected to what truly matters to you?", "When do you feel most authentic?", "What does success mean to you personally, not professionally?"],
+        4: ["How do you find meaning in ordinary moments?", "What helps when you feel misunderstood?", "When do you feel most connected to others?"],
+        5: ["How do you balance understanding with taking action?", "When do you feel most energized?", "What draws you out of your shell?"],
+        6: ["How do you distinguish between realistic and anxious thoughts?", "When do you trust your own judgment?", "What makes you feel most secure?"],
+        7: ["How do you stay present with difficult emotions?", "What gives your life real depth?", "When do you feel most grounded?"],
+        8: ["How do you show your softer side safely?", "When has vulnerability actually increased your power?", "What makes you feel most understood?"],
+        9: ["How do you speak up for what matters to you?", "When do you feel most motivated to take action?", "What helps you connect with your own priorities?"]
+    };
+    return starters[userType] || [];
+}
         
         function generateResponse(userMessage) {
-    // Ensure user has a type
+    
     if (!userType) {
         return "I'd be happy to help! Please make sure you've completed the assessment or selected your type first.";
     }
@@ -1378,116 +1483,13 @@ function getTypeSpecificInsight(type, message) {
             return specificResponses[userType] || "I'd love to help you explore this further. Can you tell me more about what's on your mind?";
         }
 
-        // Add these NEW functions before the closing </script> tag
-
-function detectEmotionalTone(message) {
-    const lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.includes('frustrated') || lowerMessage.includes('angry') || lowerMessage.includes('annoying') || lowerMessage.includes('irritated')) {
-        return 'frustrated';
-    }
-    if (lowerMessage.includes('sad') || lowerMessage.includes('depressed') || lowerMessage.includes('down') || lowerMessage.includes('overwhelmed')) {
-        return 'sad';
-    }
-    if (lowerMessage.includes('excited') || lowerMessage.includes('amazing') || lowerMessage.includes('great') || lowerMessage.includes('wonderful')) {
-        return 'positive';
-    }
-    if (lowerMessage.includes('confused') || lowerMessage.includes('help') || lowerMessage.includes('understand') || lowerMessage.includes('how do i')) {
-        return 'seeking';
-    }
-    return 'neutral';
-}
-
-function getResponseDepth() {
-    if (conversationHistory.length < 4) return 'surface';
-    if (conversationHistory.length < 8) return 'moderate';
-    return 'deep';
-}
-
-function getScenarioExample(userType, theme) {
-    const scenarios = {
-        1: {
-            work: "Like when a colleague submits work that's 'good enough' but you can see five ways to improve it",
-            relationships: "When your partner leaves dishes in the sink and you're torn between saying something or just doing it yourself",
-            general: "When you notice errors everywhere but wonder if pointing them out makes you seem critical"
-        },
-        2: {
-            work: "When you're helping everyone else with their projects but falling behind on your own deadlines",
-            relationships: "When you sense someone's upset but they say 'I'm fine' and you're not sure whether to push or give space",
-            general: "When you've been giving so much that you're exhausted but feel guilty saying no"
-        },
-        3: {
-            work: "When you're crushing your goals but wondering if you're becoming someone you don't recognize",
-            relationships: "When you catch yourself adapting your personality to what you think others want to see",
-            general: "When success feels hollow because you're not sure it reflects who you really are"
-        },
-        4: {
-            work: "When you're surrounded by people but feel like nobody really 'gets' you",
-            relationships: "When you're envious of what others have but also judgmental about their 'ordinary' choices",
-            general: "When you feel like you're missing some essential piece that everyone else has"
-        },
-        5: {
-            work: "When meetings drain your energy and you need three hours alone just to recover",
-            relationships: "When someone wants emotional support but you don't know what to say or do",
-            general: "When you understand something deeply but struggle to explain it to others"
-        },
-        6: {
-            work: "When you've thought through every possible problem but your team thinks you're being negative",
-            relationships: "When you need reassurance but don't want to seem needy or insecure",
-            general: "When you can't tell if your worry is realistic preparation or just anxiety"
-        },
-        7: {
-            work: "When you have ten exciting projects but struggle to focus deeply on any of them",
-            relationships: "When conflict arises and your instinct is to change the subject or make a joke",
-            general: "When you feel restless in routine but know some things require sustained effort"
-        },
-        8: {
-            work: "When you see injustice and want to fight it but worry about coming across as aggressive",
-            relationships: "When you care deeply but struggle to show your tender feelings",
-            general: "When you want to protect others but they see your intensity as intimidating"
-        },
-        9: {
-            work: "When you have strong opinions but stay quiet to keep the peace",
-            relationships: "When you merge so much with others' needs that you lose track of your own",
-            general: "When you know what you want but can't seem to take action on your priorities"
-        }
-    };
-    return scenarios[userType]?.[theme] || scenarios[userType]?.general || null;
-}
-
-function getIntegrationDirection(userType) {
-    const directions = {
-        1: "When you're growing, you move toward Type 7's spontaneity and joy - allowing yourself to be more flexible and playful",
-        2: "When you're growing, you move toward Type 4's self-awareness and authenticity - getting in touch with your own feelings and needs",
-        3: "When you're growing, you move toward Type 6's loyalty and commitment to others - focusing on relationships over just achievements",
-        4: "When you're growing, you move toward Type 1's objectivity and principled action - taking concrete steps toward your ideals",
-        5: "When you're growing, you move toward Type 8's confident action and leadership - stepping into your power and taking charge",
-        6: "When you're growing, you move toward Type 9's calm and trusting presence - relaxing into confidence and inner peace",
-        7: "When you're growing, you move toward Type 5's focus and depth - developing the ability to go deep rather than wide",
-        8: "When you're growing, you move toward Type 2's care and consideration for others - showing your nurturing side",
-        9: "When you're growing, you move toward Type 3's focus and decisive action - taking initiative on what matters to you"
-    };
-    return directions[userType];
-}
-
-function getConversationStarters(userType) {
-    const starters = {
-        1: ["How do you handle it when others don't meet your standards?", "What does 'good enough' mean to you?", "When do you feel most at peace with imperfection?"],
-        2: ["How do you know when you're giving too much?", "What do you do when you need help but don't want to ask?", "When do you feel most cared for by others?"],
-        3: ["How do you stay connected to what truly matters to you?", "When do you feel most authentic?", "What does success mean to you personally, not professionally?"],
-        4: ["How do you find meaning in ordinary moments?", "What helps when you feel misunderstood?", "When do you feel most connected to others?"],
-        5: ["How do you balance understanding with taking action?", "When do you feel most energized?", "What draws you out of your shell?"],
-        6: ["How do you distinguish between realistic and anxious thoughts?", "When do you trust your own judgment?", "What makes you feel most secure?"],
-        7: ["How do you stay present with difficult emotions?", "What gives your life real depth?", "When do you feel most grounded?"],
-        8: ["How do you show your softer side safely?", "When has vulnerability actually increased your power?", "What makes you feel most understood?"],
-        9: ["How do you speak up for what matters to you?", "When do you feel most motivated to take action?", "What helps you connect with your own priorities?"]
-    };
-    return starters[userType] || [];
-}
 
 window.addEventListener('load', function() {
     setTimeout(() => {
-        document.getElementById('loadingScreen').style.display = 'none';
+        const loadingScreen = document.getElementById('loadingScreen');
+        if (loadingScreen) {
+            loadingScreen.style.display = 'none';
+        }
     }, 500);
 });
     </script>
