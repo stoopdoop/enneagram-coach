@@ -1490,11 +1490,30 @@ function getConversationStarters(userType) {
     return starters[userType] || [];
 }
 
-window.addEventListener('load', function() {
-    setTimeout(() => {
-        document.getElementById('loadingScreen').style.display = 'none';
-    }, 500);
-});
+// More robust loading handler
+function hideLoadingScreen() {
+    const loadingScreen = document.getElementById('loadingScreen');
+    if (loadingScreen) {
+        loadingScreen.style.display = 'none';
+    }
+}
+
+// Try multiple approaches to ensure loading screen gets hidden
+if (document.readyState === 'complete') {
+    // Page already loaded
+    hideLoadingScreen();
+} else {
+    // Wait for page load
+    window.addEventListener('load', hideLoadingScreen);
+    
+    // Backup: hide after DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(hideLoadingScreen, 1000);
+    });
+    
+    // Final backup: hide after 3 seconds no matter what
+    setTimeout(hideLoadingScreen, 3000);
+}
     </script>
 </body>
 </html>
