@@ -1116,6 +1116,51 @@ Respond directly to what they're asking about, whether it's relationships, work,
 }
 
 function generateEnneagramResponse(message, userType) {
+    const lowerMessage = message.toLowerCase();
+    
+    // Check for specific question types and route appropriately
+    
+    // Work-related questions
+    if (lowerMessage.includes('work') || lowerMessage.includes('job') || lowerMessage.includes('career') || 
+        lowerMessage.includes('colleague') || lowerMessage.includes('boss') || lowerMessage.includes('team')) {
+        return handleWorkQuestion(message, userType);
+    }
+    
+    // Relationship questions (looking for other type numbers)
+    for (let i = 1; i <= 9; i++) {
+        if (lowerMessage.includes(`type ${i}`) || lowerMessage.includes(` ${i} `) || 
+            lowerMessage.includes(`with ${i}s`) || lowerMessage.includes(`and ${i}s`)) {
+            return handleRelationshipQuestion(message, userType);
+        }
+    }
+    
+    // Growth and development questions
+    if (lowerMessage.includes('grow') || lowerMessage.includes('develop') || lowerMessage.includes('improve') ||
+        lowerMessage.includes('better') || lowerMessage.includes('change') || lowerMessage.includes('motivation')) {
+        return handleGrowthQuestion(message, userType);
+    }
+    
+    // Stress-related questions
+    if (lowerMessage.includes('stress') || lowerMessage.includes('anxious') || lowerMessage.includes('overwhelm') ||
+        lowerMessage.includes('pressure') || lowerMessage.includes('difficult')) {
+        const stressPattern = getStressPattern(userType);
+        const stressAdvice = getStressAdvice(userType);
+        return `When under stress, Type ${userType}s often ${stressPattern}. ${stressAdvice} What specific stressors are you dealing with right now?`;
+    }
+    
+    // Questions about specific traits or characteristics
+    if (lowerMessage.includes('trait') || lowerMessage.includes('characteristic') || lowerMessage.includes('quality') ||
+        lowerMessage.includes('strength') || lowerMessage.includes('weakness')) {
+        return getTypeSpecificResponse(message, userType);
+    }
+    
+    // Direct questions that need direct answers
+    if (lowerMessage.includes('what') || lowerMessage.includes('which') || lowerMessage.includes('who') ||
+        lowerMessage.includes('when') || lowerMessage.includes('how') || lowerMessage.includes('why')) {
+        return handleDirectQuestion(message, userType);
+    }
+    
+    // Default to contextual response for general conversation
     const typeTraits = {
         1: "As a Type 1, you value excellence, improvement, and doing things right",
         2: "As a Type 2, you're naturally caring and attentive to others' needs",
@@ -1127,7 +1172,9 @@ function generateEnneagramResponse(message, userType) {
         8: "As a Type 8, you're naturally strong, direct, and protective of others",
         9: "As a Type 9, you bring peace, understanding, and harmony to situations"
     };
-
+    
+    return generateContextualResponse(message, userType, typeTraits[userType]);
+}
     // Instead of keyword matching, provide contextual, conversational responses
     return generateContextualResponse(message, userType, typeTraits[userType]);
 }
@@ -1408,20 +1455,55 @@ function getTypeSpecificInsight(type, message) {
         }
 
         function handleWorkQuestion(message, userType) {
-            const workAdvice = {
-                1: "Focus on shared standards and clear expectations. Appreciate different approaches to quality results.",
-                2: "Remember that not everyone shows care the same way. Focus on the work relationship, not personal connection.",
-                3: "Recognize that not everyone is motivated by achievement. Adapt your communication style to their values.",
-                4: "Appreciate that others may not need the same emotional depth. Focus on the task while honoring authenticity.",
-                5: "Share your expertise when asked, but don't expect others to need as much information before acting.",
-                6: "Build trust through consistency. Not everyone needs as much security, but everyone appreciates reliability.",
-                7: "Remember that others may prefer depth over breadth. Finish commitments before starting new projects.",
-                8: "Use your natural leadership while being mindful of others' need for autonomy and gentler communication.",
-                9: "Your diplomatic skills are valuable. Practice speaking up about your priorities and preferences."
-            };
+    const lowerMessage = message.toLowerCase();
+    
+    // Check if asking about preferences with other types
+    if (lowerMessage.includes('prefer') || lowerMessage.includes('types') || lowerMessage.includes('with')) {
+        const workCompatibility = {
+            1: "You likely work best with Types 3, 6, and 9. Type 3s share your drive for excellence, Type 6s appreciate your high standards, and Type 9s balance your intensity with calm.",
+            2: "You work well with Types 4, 6, and 9. Type 4s appreciate your emotional support, Type 6s value your loyalty, and Type 9s create harmony with you.",
+            3: "You thrive with Types 1, 8, and 9. Type 1s match your quality standards, Type 8s share your directness, and Type 9s provide supportive energy.",
+            4: "You connect well with Types 2, 5, and 9. Type 2s understand emotions, Type 5s share your depth, and Type 9s accept your uniqueness.",
+            5: "You work effectively with Types 1, 4, and 8. Type 1s respect your expertise, Type 4s appreciate depth, and Type 8s give you autonomy.",
+            6: "You collaborate well with Types 1, 2, and 9. Type 1s provide structure, Type 2s offer support, and Type 9s create stability.",
+            7: "You excel with Types 3, 8, and 9. Type 3s match your energy, Type 8s share your confidence, and Type 9s ground your enthusiasm.",
+            8: "You work powerfully with Types 2, 6, and 9. Type 2s soften your edges, Type 6s are loyal teammates, and Type 9s balance your intensity.",
+            9: "You harmonize with Types 1, 3, and 6. Type 1s provide structure, Type 3s bring energy, and Type 6s offer reliability."
+        };
+        return workCompatibility[userType] + " Of course, any type combination can work well with mutual understanding and respect. What's your current work situation?";
+    }
+    
+    // Check if asking about work preferences/style
+    if (lowerMessage.includes('preference') || lowerMessage.includes('style') || lowerMessage.includes('environment')) {
+        const workPreferences = {
+            1: "You prefer structured environments with clear expectations, quality standards, and ethical practices. You thrive when you can improve systems and processes, and you need autonomy to do things the 'right' way.",
+            2: "You excel in collaborative environments where relationships matter. You prefer roles where you can help others succeed and make a meaningful difference. Recognition for your contributions is important.",
+            3: "You thrive in goal-oriented environments with clear metrics for success. You prefer fast-paced settings where you can achieve and be recognized for results. Efficiency and advancement opportunities motivate you.",
+            4: "You need creative freedom and authentic expression in your work. You prefer environments that value uniqueness and depth over conformity. Meaningful work matters more than traditional success metrics.",
+            5: "You excel in roles requiring expertise and independent thinking. You prefer minimal meetings, time for deep work, and intellectual challenges. Autonomy and respect for your knowledge are crucial.",
+            6: "You thrive in stable environments with clear authority and backup plans. You prefer collaborative teams with mutual support and loyalty. Security and trust in leadership matter greatly.",
+            7: "You love variety, flexibility, and new challenges. You prefer dynamic environments with multiple projects and learning opportunities. Freedom to explore possibilities energizes you.",
+            8: "You excel in leadership roles with decision-making power. You prefer direct communication, challenging projects, and the ability to protect your team. Control over your domain is essential.",
+            9: "You thrive in harmonious, stable environments without conflict. You prefer collaborative approaches, routine tasks, and inclusive decision-making. Peace and mutual respect are priorities."
+        };
+        return workPreferences[userType];
+    }
+    
+    // Default work advice
+    const workAdvice = {
+        1: "Focus on shared standards and clear expectations. Appreciate different approaches to quality results.",
+        2: "Remember that not everyone shows care the same way. Focus on the work relationship, not personal connection.",
+        3: "Recognize that not everyone is motivated by achievement. Adapt your communication style to their values.",
+        4: "Appreciate that others may not need the same emotional depth. Focus on the task while honoring authenticity.",
+        5: "Share your expertise when asked, but don't expect others to need as much information before acting.",
+        6: "Build trust through consistency. Not everyone needs as much security, but everyone appreciates reliability.",
+        7: "Remember that others may prefer depth over breadth. Finish commitments before starting new projects.",
+        8: "Use your natural leadership while being mindful of others' need for autonomy and gentler communication.",
+        9: "Your diplomatic skills are valuable. Practice speaking up about your priorities and preferences."
+    };
 
-            return `${workAdvice[userType]} What specific work challenge are you facing with this person?`;
-        }
+    return workAdvice[userType] + " What specific work challenge are you facing?";
+}
 
         function handleGrowthQuestion(message, userType) {
             const growthAdvice = {
